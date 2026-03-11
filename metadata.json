@@ -1,0 +1,5 @@
+{
+  "name": "TryDax API",
+  "description": "REST API for WhatsApp & Telegram Bots with API Key system and various tools.",
+  "requestFramePermissions": []
+}
