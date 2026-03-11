@@ -1,0 +1,17 @@
+{
+  "name": "trydax-bots",
+  "version": "1.0.0",
+  "description": "Bots for TryDax API",
+  "main": "bot-wa.js",
+  "scripts": {
+    "wa": "node bot-wa.js",
+    "tg": "node bot-tg.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.6.0",
+    "grammy": "^1.20.0",
+    "node-fetch": "^2.7.0",
+    "pino": "^8.19.0",
+    "@hapi/boom": "^10.0.1"
+  }
+}
