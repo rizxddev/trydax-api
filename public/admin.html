@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TryDax Admin — Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --accent-green: #00ff88;
+            --accent-cyan: #00d4ff;
+            --bg-dark: #0a0a0a;
+            --card-dark: #151515;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .rajdhani { font-family: 'Rajdhani', sans-serif; }
+        .glow-cyan { text-shadow: 0 0 10px var(--accent-cyan); }
+        input, textarea { background: #1a1a1a; border: 1px solid #333; color: white; padding: 8px; border-radius: 4px; width: 100%; }
+        button { transition: all 0.2s; }
+        button:hover { opacity: 0.8; }
+    </style>
+</head>
+<body class="p-4 md:p-8 max-w-4xl mx-auto">
+
+    <div id="login-section" class="mt-20 max-w-md mx-auto bg-[#151515] p-8 rounded-xl border border-gray-800">
+        <h1 class="rajdhani text-3xl font-bold mb-6 text-center glow-cyan">ADMIN LOGIN</h1>
+        <div class="space-y-4">
+            <div>
+                <label class="text-xs text-gray-500 block mb-1">ADMIN TOKEN</label>
+                <input type="password" id="admin-token" placeholder="Enter token...">
+            </div>
+            <button onclick="login()" class="w-full bg-accent-cyan text-black py-3 rounded font-bold">ACCESS DASHBOARD</button>
+        </div>
+    </div>
+
+    <div id="admin-section" class="hidden">
+        <header class="flex justify-between items-center mb-12 border-b border-gray-800 pb-4">
+            <h1 class="rajdhani text-4xl font-bold glow-cyan">ADMIN PANEL</h1>
+            <button onclick="logout()" class="text-xs text-red-500 border border-red-500 px-3 py-1 rounded">LOGOUT</button>
+        </header>
+
+        <section class="mb-12">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-accent-green">MANAGE TOOLS</h2>
+                <button onclick="addTool()" class="bg-accent-green text-black px-4 py-2 rounded text-xs font-bold">+ ADD NEW TOOL</button>
+            </div>
+
+            <div id="tools-list" class="space-y-4">
+                <!-- Tools will be loaded here -->
+            </div>
+
+            <div class="mt-8 flex justify-end">
+                <button onclick="saveTools()" class="bg-accent-cyan text-black px-8 py-3 rounded font-bold">SAVE ALL CHANGES</button>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        let currentToken = localStorage.getItem('admin_token');
+        let tools = [];
+
+        async function login() {
+            const token = document.getElementById('admin-token').value;
+            const res = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            const data = await res.json();
+            if (data.status) {
+                currentToken = token;
+                localStorage.setItem('admin_token', token);
+                showDashboard();
+            } else {
+                alert("Invalid token!");
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('admin_token');
+            location.reload();
+        }
+
+        async function showDashboard() {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('admin-section').classList.remove('hidden');
+            loadTools();
+        }
+
+        async function loadTools() {
+            const res = await fetch('/api/admin/tools', {
+                headers: { 'x-admin-token': currentToken }
+            });
+            const data = await res.json();
+            if (data.status) {
+                tools = data.result;
+                renderTools();
+            }
+        }
+
+        function renderTools() {
+            const container = document.getElementById('tools-list');
+            container.innerHTML = tools.map((tool, index) => `
+                <div class="bg-[#1a1a1a] p-4 rounded-lg border border-gray-800 relative">
+                    <button onclick="removeTool(${index})" class="absolute top-2 right-2 text-red-500 text-xs">REMOVE</button>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] text-gray-600">ID</label>
+                            <input type="text" value="${tool.id}" onchange="updateTool(${index}, 'id', this.value)">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-gray-600">ICON</label>
+                            <input type="text" value="${tool.icon}" onchange="updateTool(${index}, 'icon', this.value)">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-[10px] text-gray-600">NAME</label>
+                            <input type="text" value="${tool.name}" onchange="updateTool(${index}, 'name', this.value)">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-[10px] text-gray-600">DESCRIPTION</label>
+                            <input type="text" value="${tool.desc}" onchange="updateTool(${index}, 'desc', this.value)">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-[10px] text-gray-600">ENDPOINT TEMPLATE</label>
+                            <input type="text" value="${tool.endpoint}" onchange="updateTool(${index}, 'endpoint', this.value)">
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateTool(index, field, value) {
+            tools[index][field] = value;
+        }
+
+        function addTool() {
+            tools.push({ id: 'new', name: 'New Tool', desc: 'Description', endpoint: '/tools/new?apikey={key}', icon: '🆕' });
+            renderTools();
+        }
+
+        function removeTool(index) {
+            if (confirm("Remove this tool?")) {
+                tools.splice(index, 1);
+                renderTools();
+            }
+        }
+
+        async function saveTools() {
+            const res = await fetch('/api/admin/tools', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-admin-token': currentToken
+                },
+                body: JSON.stringify({ tools })
+            });
+            const data = await res.json();
+            if (data.status) {
+                alert("Saved successfully!");
+            } else {
+                alert("Error saving: " + data.message);
+            }
+        }
+
+        if (currentToken) {
+            showDashboard();
+        }
+    </script>
+</body>
+</html>
